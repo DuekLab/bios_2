@@ -1,0 +1,91 @@
+---
+title: "Class_1"
+author: "Or Duek"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Central Limit Theorm
+
+Central Limit Theorm
+
+The central limit theorem states that the distribution of sample averages approaches a normal distribution as the sample size gets larger
+
+Now we will build a simulation showing the central limit theorem
+
+We will take a random sample of size 10 from a uniform distribution
+
+We will repeat this process 1000 times and calculate the sample average each time
+
+We will then plot a histogram of the sample averages
+
+We will then repeat the process with a sample size of 30
+
+```{r}
+# Set the seed
+set.seed(123)
+
+# generate normal distribution of 5000 samples
+normal_dist <- rnorm(5000, mean = 0, sd = 1)
+# plot
+hist(normal_dist, breaks = 50, col = "lightblue", main = "Normal Distribution", xlab = "Value")
+
+```
+
+## Nice
+
+-   Now lets play with it
+
+```{r}
+# Take a random sample of size 10 from the normal distribution
+sample_10 <- sample(normal_dist, 10)
+hist(sample_10, breaks = 50, col = "lightblue", main = "Sample of 10", xlab = "Value")
+```
+
+### Hmmm
+
+Doesn't look so good, right?
+
+```{r}
+# now, leat take n=10 and generate average of them, repeat 1000 times
+sample_means_10 <- replicate(1000, mean(sample(normal_dist, 10)))
+
+# plot
+hist(sample_means_10, breaks = 50, col = "lightblue", main = "Sample Means of 10", xlab = "Value")
+```
+
+Nicer, right?
+
+ok, but this is normal distribution, what about uniform distribution?
+
+```{r}
+
+# Set the seed
+set.seed(123)
+
+
+# generate uniform distribution of 5000 samples
+uniform_dist <- runif(5000, min = 0, max = 1)
+hist(uniform_dist, breaks = 50, col = "lightblue", main = "Uniform Distribution", xlab = "Value")
+
+# Take a random sample of size 10 from the uniform distribution
+sample_10 <- sample(uniform_dist, 10)
+hist(sample_10, breaks = 50, col = "lightblue", main = "Sample of 10", xlab = "Value")
+
+```
+
+### Let's take average and repeaet
+
+```{r}
+# now, leat take n=10 and generate average of them, repeat 1000 times
+sample_means_10 <- replicate(1000, mean(sample(uniform_dist, 10)))
+
+# plot
+hist(sample_means_10, breaks = 50, col = "lightblue", main = "Sample Means of 10", xlab = "Value")
+```
+
+# BAM!!
