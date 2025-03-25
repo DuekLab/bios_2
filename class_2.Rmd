@@ -1,0 +1,244 @@
+---
+title: "bios_class_@"
+author: "Or Duek"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+# load libraries
+library(ggplot2)
+library(tidyverse)
+library(gtsummary)
+```
+
+# Today we will discuss T tests and ANOVA
+- t test is meant to compare two groups (dependent or independent)
+
+
+## Independent t test
+- assume that the groups are not dependent
+- assumes that the observed (i.e. dependent) variable is normally distributed
+- assumes that the groups have equal variances (i.e., homoschedasticity)
+
+```{r}
+# Independent t test
+# lets start by simulate data of two groups of people (men/women) and their weight
+set.seed(123)
+# Define the sample size
+n <- 100
+
+# Simulate gender
+gender <- sample(c("Men", "Women"), n, replace = TRUE)
+
+# Simulate weight
+weight <- ifelse(gender == "Men",
+                 rnorm(n, mean = 80, sd = 5),   # Mean weight for men: 80kg
+                 rnorm(n, mean = 70, sd = 5))   # Mean weight for women: 70kg
+
+# Create data frame
+data <- data.frame(Gender = gender, Weight = weight)
+
+```
+
+Plot it (Exploratory data analysis)
+
+Table1
+
+```{r}
+tbl_summary(data,
+            by= Gender)
+```
+
+Plot
+```{r}
+ggplot(data, aes(x=Gender, y= weight, color= Gender)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.2, height = 0, alpha = 0.5) +
+  theme_minimal()
+```
+
+Now lets run the t test
+
+```{r}
+# before we run t test, we need to test assumptions
+# test that observed variable is normally distributed
+shapiro.test(data$Weight)
+# show qqplot
+qqnorm(data$Weight)
+
+```
+
+```{r}
+t.test(Weight ~ Gender, data = data, var.equal = T)
+```
+
+- lest see if variance is equal
+```{r}
+library(car)
+leveneTest(Weight ~ Gender, data=data)
+```
+## Paired t test
+
+```{r}
+# Paired t test
+# lets simulate two measures of depressive symptoms before and after treatment
+set.seed(124)
+# Define the sample size
+n <- 100
+# lets say treatment had effect of average 5 points, with sd of 2
+before <- rnorm(n, mean = 20, sd = 5)
+after <- before + rnorm(n, mean = -5, sd = 2)
+
+# Create data frame
+data_paired <- data.frame(Before = before, After = after)
+```
+
+
+```{r}
+# show histograms of before (red) and after (blue)
+df_long <- pivot_longer(data_paired, cols = c(Before, After), names_to = "Condition", values_to = "Value")
+
+# Plotting histograms
+ggplot(df_long, aes(x = Value, fill = Condition)) +
+  geom_histogram(alpha = 0.5, position = "identity", bins = 15) +
+  scale_fill_manual(values = c("Before" = "red", "After" = "blue")) +
+  labs(title = "Histogram: Before vs After", x = "Value", y = "Frequency") +
+  theme_minimal()
+```
+Cool, now lets t test it
+
+```{r}
+# paired t-test
+paired_test <- t.test(data_paired$Before, data_paired$After, paired = T)
+paired_test
+```
+
+
+```{r}
+# Load ggplot2
+library(ggplot2)
+
+# Define your data
+mean_value <- paired_test$estimate
+ci_lower <- paired_test$conf.int[1]
+ci_upper <- paired_test$conf.int[2]
+
+# Create a data frame for plotting
+df_ci <- data.frame(
+  Measure = "Paired t-test",
+  Mean = mean_value,
+  LowerCI = ci_lower,
+  UpperCI = ci_upper
+)
+
+# Plotting
+ggplot(df_ci, aes(x = Measure, y = Mean)) +
+  geom_point(size = 4, color = "darkblue") +
+  geom_errorbar(aes(ymin = LowerCI, ymax = UpperCI), width = 0.1, color = "darkblue") +
+  coord_flip(ylim=c(-1,7)) +
+  labs(title = "Mean with 95% Confidence Interval",
+       x = "",
+       y = "Value") +
+  theme_minimal(base_size = 14) +
+  theme(panel.grid.major.y = element_blank(),
+        axis.text.y = element_text(face = "bold"))
+
+```
+
+# Now we do Chi square test
+
+```{r}
+set.seed(42)  # reproducibility
+
+# Define sample size per medication group
+n <- 100
+
+# Generate medication groups
+medication <- rep(c("Med_A", "Med_B", "Med_C"), each = n)
+
+# Simulate recovery (Med_B has higher effectiveness)
+recovery <- c(
+  rbinom(n, 1, 0.31),  # Med_A: 31% recovery rate
+  rbinom(n, 1, 0.70),  # Med_B: 70% recovery rate (helps recovery)
+  rbinom(n, 1, 0.35)  # Med_C: 35% recovery rate
+)
+
+# Create data frame
+df <- data.frame(
+  Medication = medication,
+  Recovered = factor(recovery, labels = c("No", "Yes"))
+)
+
+# View data summary
+table(df$Medication, df$Recovered)
+
+```
+Now we run the Chi square test
+
+```{r}
+chisq.test(table(df$Medication, df$Recovered))
+```
+
+```{r}
+tbl <- table(df$Medication, df$Recovered)
+
+# Chi-square test
+chi_result <- chisq.test(tbl)
+
+# Extract actual chi-square value and degrees of freedom
+chi_value <- chi_result$statistic
+df_chi <- chi_result$parameter
+
+# Critical value (alpha = 0.05 significance level)
+alpha <- 0.05
+critical_value <- qchisq(1 - alpha, df_chi)
+
+# Create data frame for plotting
+x_vals <- seq(0, chi_value + 10, length.out = 500)
+chi_density <- dchisq(x_vals, df = df_chi)
+
+plot_df <- data.frame(x = x_vals, y = chi_density)
+
+# Plot chi-square distribution
+ggplot(plot_df, aes(x, y)) +
+  geom_line(color = "darkblue", size = 1) +
+  
+  # Shade critical region
+  geom_area(data = subset(plot_df, x > critical_value), fill = "red", alpha = 0.3) +
+  
+  # Add critical value line
+  geom_vline(xintercept = critical_value, color = "red", linetype = "dashed", linewidth = 1) +
+  annotate("text", x = critical_value, y = max(chi_density)*0.9, 
+           label = paste("Critical Value\n", round(critical_value,2)), 
+           color = "red", hjust = -0.1) +
+  
+  # Add actual chi-square statistic line
+  geom_vline(xintercept = chi_value, color = "black", linetype = "solid", linewidth = 1) +
+  annotate("text", x = chi_value, y = max(chi_density)*0.7, 
+           label = paste("Actual Value\n", round(chi_value,2)), 
+           color = "black", hjust = -0.1) +
+  
+  labs(title = "Chi-square Distribution with Critical and Actual Values",
+       x = expression(chi^2 ~ "Statistic"),
+       y = "Density") +
+  theme_minimal(base_size = 14)
+```
+##  Fisher's exact test
+
+```{r}
+# lets do Fisher's exact test
+fisher.test(tbl)
+```
+
+## McNemar's test
+
+```{r}
+# lets simulate data for McNemar's test
+df_mc <- matrix(c(29,13,39,19), nrow=2,
+                dimnames = list("After Video" = c("Support", "No Support"),
+                                "Before Video" = c("Support", "No Support")))
+
+mcnemar.test(df_mc)
+```
+
