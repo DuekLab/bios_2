@@ -13,13 +13,14 @@ library(gtsummary)
 ```
 
 # Today we will discuss T tests and ANOVA
-- t test is meant to compare two groups (dependent or independent)
 
+-   t test is meant to compare two groups (dependent or independent)
 
 ## Independent t test
-- assume that the groups are not dependent
-- assumes that the observed (i.e. dependent) variable is normally distributed
-- assumes that the groups have equal variances (i.e., homoschedasticity)
+
+-   assume that the groups are not dependent
+-   assumes that the observed (i.e. dependent) variable is normally distributed
+-   assumes that the groups have equal variances (i.e., homoschedasticity)
 
 ```{r}
 # Independent t test
@@ -51,6 +52,7 @@ tbl_summary(data,
 ```
 
 Plot
+
 ```{r}
 ggplot(data, aes(x=Gender, y= weight, color= Gender)) +
   geom_boxplot() +
@@ -73,11 +75,13 @@ qqnorm(data$Weight)
 t.test(Weight ~ Gender, data = data, var.equal = T)
 ```
 
-- lest see if variance is equal
+-   lest see if variance is equal
+
 ```{r}
 library(car)
 leveneTest(Weight ~ Gender, data=data)
 ```
+
 ## Paired t test
 
 ```{r}
@@ -94,7 +98,6 @@ after <- before + rnorm(n, mean = -5, sd = 2)
 data_paired <- data.frame(Before = before, After = after)
 ```
 
-
 ```{r}
 # show histograms of before (red) and after (blue)
 df_long <- pivot_longer(data_paired, cols = c(Before, After), names_to = "Condition", values_to = "Value")
@@ -106,6 +109,7 @@ ggplot(df_long, aes(x = Value, fill = Condition)) +
   labs(title = "Histogram: Before vs After", x = "Value", y = "Frequency") +
   theme_minimal()
 ```
+
 Cool, now lets t test it
 
 ```{r}
@@ -113,7 +117,6 @@ Cool, now lets t test it
 paired_test <- t.test(data_paired$Before, data_paired$After, paired = T)
 paired_test
 ```
-
 
 ```{r}
 # Load ggplot2
@@ -174,6 +177,7 @@ df <- data.frame(
 table(df$Medication, df$Recovered)
 
 ```
+
 Now we run the Chi square test
 
 ```{r}
@@ -224,7 +228,8 @@ ggplot(plot_df, aes(x, y)) +
        y = "Density") +
   theme_minimal(base_size = 14)
 ```
-##  Fisher's exact test
+
+## Fisher's exact test
 
 ```{r}
 # lets do Fisher's exact test
@@ -241,4 +246,155 @@ df_mc <- matrix(c(29,13,39,19), nrow=2,
 
 mcnemar.test(df_mc)
 ```
+
+# ANOVA
+
+-   What should we do when we have more than two groups to compare?
+
+-   Analysis Of Variance
+
+-   We expect the variance between the groups (MSG/MSB) to be larger than variance within the groups (MSE/MSW)
+
+-   So, we calculate F as the ratio of MSG/MSE
+
+-   If F is larger than critical value, we reject the null hypothesis
+
+-   If F is 1 $\rightarrow$ no difference between groups
+
+* We first simulate three different groups
+
+```{r}
+# lets make it women, men and children with their different height
+set.seed(43)
+n <- 120
+# now we build men, women and children. with men normally distributed with average of 175, women average 165 and children average 130
+
+men <- rnorm(n/3, mean=175, sd=10)
+women <- rnorm(n/3, mean=165, sd=10)
+children <- rnorm(n/3, mean=130, sd=10)
+# generate a vector of "men", "women" and "children" with number of time as the number of samples
+type <- rep(c("men", "women", "children"), each = n/3)
+# combine height of all three groups
+height <- c(men, women, children)
+# Create data frame
+df_h <- data.frame(type=type, height=height)
+
+```
+
+Let's plot it
+
+```{r}
+ggplot(df_h, aes(x=type, y= height, color= type)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.2, height = 0, alpha = 0.5) +
+  theme_minimal()
+```
+
+## Now we do ANOVA
+```{r}
+model <- aov(height ~ type, data = df_h)
+summary(model)
+```
+## Post Hoc Analysis
+- So, we now there's a difference, but not sure where?
+- We can use post hoc analysis to compare all groups to each other
+
+- TukeyHSD (Honestly Significant Difference) is a common post hoc test after ANOVA, which compares all groups
+```{r}
+TukeyHSD(model)
+
+```
+- When we have a specific group comparison we can use Bonferroni correction
+
+```{r}
+pairwise.t.test(df_h$height, df_h$type, p.adjust.method = "bonferroni")
+```
+# Why do we correct for multiple comparisons?
+
+```{r}
+set.seed(42)
+# Number of groups and participants
+num_groups <- 5
+participants_per_group <- 20
+simulate_false_positives <- function(){
+  data <- data.frame(
+    Group = factor(rep(1:num_groups, each = participants_per_group)),
+    Value = rnorm(num_groups * participants_per_group, mean = 10, sd = 2)
+  )
+  
+  pairwise_result <- pairwise.t.test(data$Value, data$Group, p.adjust.method = "none")
+  false_positive_count <- sum(pairwise_result$p.value < 0.05, na.rm = TRUE)
+  return(false_positive_count)
+}
+
+# Run simulation 5000 times
+simulations <- replicate(5000, simulate_false_positives())
+
+# Average number of false positives
+mean(simulations)
+hist(simulations, 
+     main = "Distribution of False Positives (no correction)", 
+     xlab = "Number of False Positives per Simulation")
+
+```
+
+## ANOVA with repeated measures
+- Here we have dependent observations
+- So here the "group" might be the same person at different times
+
+* In $R$ we use the `aov` function with the `Error` function to specify the repeated measures
+* Let's simulate 20 subjects who were measured before treatment, right after treatment and 1 month after treatment
+
+```{r}
+set.seed(42)
+n_subjects <- 20
+
+# Simulate data
+subject <- factor(1:n_subjects)
+
+# Before treatment (baseline)
+before <- rnorm(n_subjects, mean = 50, sd = 10)
+
+# Right after treatment (improvement by around 10 points)
+after_immediate <- before - rnorm(n_subjects, mean = 10, sd = 5)
+
+# 1 month after (partial return towards baseline, improvement around 5 points)
+after_month <- before - rnorm(n_subjects, mean = 5, sd = 5)
+
+# Combine into data frame
+df <- data.frame(
+  Subject = subject,
+  Before = before,
+  After_Immediate = after_immediate,
+  After_1Month = after_month
+)
+```
+
+Plot
+
+```{r}
+# boxplot of before, after and 1 month
+df_long <- df %>%
+  pivot_longer(cols = c(Before, After_Immediate, After_1Month), names_to = "Time", values_to = "Value") %>% 
+  mutate(Time = factor(Time, levels = c("Before", "After_Immediate", "After_1Month")))
+
+ggplot(df_long, aes(x = Time, y = Value, color = Time)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.2, height = 0, alpha = 0.5) +
+  theme_minimal()
+```
+
+- Now we can do repeated measures
+
+```{r}
+model_repeated <- aov(Value ~ Time + Error(Subject/Time), data = df_long)
+summary(model_repeated)
+```
+
+We can do posthoc analysis as well
+
+```{r}
+pairwise.t.test(df_long$Value, df_long$Time, p.adjust.method = "bonferroni")
+```
+# That's it for today
 
