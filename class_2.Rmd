@@ -1,5 +1,5 @@
 ---
-title: "bios_class_@"
+title: "bios_class_2"
 author: "Or Duek"
 date: "`r Sys.Date()`"
 output: html_document
@@ -97,6 +97,11 @@ after <- before + rnorm(n, mean = -5, sd = 2)
 # Create data frame
 data_paired <- data.frame(Before = before, After = after)
 ```
+
+```{r}
+hist(after)
+```
+
 
 ```{r}
 # show histograms of before (red) and after (blue)
@@ -261,7 +266,7 @@ mcnemar.test(df_mc)
 
 -   If F is 1 $\rightarrow$ no difference between groups
 
-* We first simulate three different groups
+-   We first simulate three different groups
 
 ```{r}
 # lets make it women, men and children with their different height
@@ -291,24 +296,31 @@ ggplot(df_h, aes(x=type, y= height, color= type)) +
 ```
 
 ## Now we do ANOVA
+
 ```{r}
 model <- aov(height ~ type, data = df_h)
 summary(model)
 ```
-## Post Hoc Analysis
-- So, we now there's a difference, but not sure where?
-- We can use post hoc analysis to compare all groups to each other
 
-- TukeyHSD (Honestly Significant Difference) is a common post hoc test after ANOVA, which compares all groups
+## Post Hoc Analysis
+
+-   So, we now there's a difference, but not sure where?
+
+-   We can use post hoc analysis to compare all groups to each other
+
+-   TukeyHSD (Honestly Significant Difference) is a common post hoc test after ANOVA, which compares all groups
+
 ```{r}
 TukeyHSD(model)
 
 ```
-- When we have a specific group comparison we can use Bonferroni correction
+
+-   When we have a specific group comparison we can use Bonferroni correction
 
 ```{r}
 pairwise.t.test(df_h$height, df_h$type, p.adjust.method = "bonferroni")
 ```
+
 # Why do we correct for multiple comparisons?
 
 ```{r}
@@ -339,11 +351,14 @@ hist(simulations,
 ```
 
 ## ANOVA with repeated measures
-- Here we have dependent observations
-- So here the "group" might be the same person at different times
 
-* In $R$ we use the `aov` function with the `Error` function to specify the repeated measures
-* Let's simulate 20 subjects who were measured before treatment, right after treatment and 1 month after treatment
+-   Here we have dependent observations
+
+-   So here the "group" might be the same person at different times
+
+-   In $R$ we use the `aov` function with the `Error` function to specify the repeated measures
+
+-   Let's simulate 20 subjects who were measured before treatment, right after treatment and 1 month after treatment
 
 ```{r}
 set.seed(42)
@@ -384,7 +399,7 @@ ggplot(df_long, aes(x = Time, y = Value, color = Time)) +
   theme_minimal()
 ```
 
-- Now we can do repeated measures
+-   Now we can do repeated measures
 
 ```{r}
 model_repeated <- aov(Value ~ Time + Error(Subject/Time), data = df_long)
@@ -396,5 +411,5 @@ We can do posthoc analysis as well
 ```{r}
 pairwise.t.test(df_long$Value, df_long$Time, p.adjust.method = "bonferroni")
 ```
-# That's it for today
 
+# That's it for today

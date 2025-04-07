@@ -1,0 +1,149 @@
+---
+title: "bios_class_3"
+author: "Or Duek"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+# load libraries
+library(ggplot2)
+library(tidyverse)
+library(gtsummary)
+```
+
+# Today we will discuss Correlation between two variables
+
+- When we want to test the association between two continuous variables, we can use pearson's correlation. 
+- Pearson has a number of assumptions:
+  - The two variables are continuous
+  - The two variables are normally distributed
+  - The two variables have a linear relationship
+  - Homoscedasticity
+
+
+Let's simulate two correlating variables  
+
+```{r}
+var_a <- rnorm(20, mean = 10, sd = 2)
+var_b <- var_a - rnorm(20, mean = 2, sd = 3)
+
+# plot them 
+plot(var_a, var_b)
+
+```
+  
+  
+## Lets test the correlation
+
+```{r}
+cor.test(var_a, var_b)
+```
+
+  
+# A-parametric tests
+Usually use the order
+
+- Mann-whitney U test
+
+```{r}
+# compare age of visitors of two different doctors:
+doc_a <- c(8.2,9.3,9.4,9.5,12.6,12.7,12.8)
+doc_b <- c(9.1,9.2,12.5,13.8,17.9,17.9,19.3)
+
+# plot them
+plot(doc_a, doc_b)
+
+# do mann-whitney U test (only Wilcoxon test is available in R, set Paired to False)
+wilcox.test(doc_a, doc_b, paired = FALSE) # Mann-Whitney U test
+```
+
+
+- Wilcoxon signed rank test
+When two samples are dependent (before/after) 
+We do Wilcoxon signed rank test
+
+```{r}
+# compare sutents rating in two different professors
+prof_a <- c(4,2,1,5,5,4,5,2,5,5)
+prof_b <- c(2,1,2,4,5,5,4,2,2,3)
+
+wilcox.test(prof_a, prof_b, paired = TRUE, correct = F) # Wilcoxon signed rank test
+```
+
+- Kruskal-Wallis test
+When we have more than two groups, we can use Kruskal-Wallis test
+
+```{r}
+# simulate data
+set.seed(123)
+group_a <- rnorm(20, mean = 10, sd = 2)
+group_b <- rnorm(20, mean = 12, sd = 2)
+group_c <- rnorm(20, mean = 14, sd = 2)
+
+# plot
+boxplot(group_a, group_b, group_c)
+
+# nicer plot with ggplot
+df <- data.frame(
+  value = c(group_a, group_b, group_c),
+  group = rep(c("A", "B", "C"), each = 20)
+)
+ggplot(df, aes(x = group, y = value, color=group)) +
+  geom_boxplot() + geom_jitter(width = 0.2, alpha = 0.5) +
+  labs(title = "Kruskal-Wallis Test", x = "Group", y = "Value") +
+  theme_minimal()
+# run test
+kruskal.test(list(group_a, group_b, group_c))
+
+```
+- Friedman test
+When we have more than two groups and the samples are dependent (before/after)
+
+```{r}
+# simulate data
+set.seed(3)
+time_a <- rnorm(20, mean = 10, sd = 5)
+time_b <- time_a + rnorm(20, mean = 2, sd = 2)
+time_c <- time_b + rnorm(20, mean = 2, sd = 4)
+
+# Create a subject/blocking factor
+subject <- factor(rep(1:20, 3))
+
+# Create dataframe with subject ID
+df <- data.frame(
+  subject = subject,
+  value = c(time_a, time_b, time_c),
+  time = factor(rep(c("A", "B", "C"), each = 20))
+)
+
+# Plot
+library(ggplot2)
+ggplot(df, aes(x = time, y = value, color = time)) +
+  geom_boxplot() + geom_jitter(width = 0.2, alpha = 0.5) +
+  labs(title = "Friedman Test", x = "Time", y = "Value") +
+  theme_minimal()
+
+# Friedman test with subject as a blocking variable
+friedman.test(value ~ time | subject, data = df)
+
+```
+
+## Spearman's correlation
+- Spearman's correlation is a non-parametric test that can be used to test the association between two continuous variables.
+
+- When no normal distribution is assumed
+- When small samples
+
+```{r}
+# simulate data
+a <- rnorm(7, mean = 10, sd = 2)
+b <- a + rnorm(7, mean = 2, sd = 3)
+
+# plot
+plot(a, b)
+
+# run spearman's correlation
+cor.test(a, b, method = "spearman")
+```
+
